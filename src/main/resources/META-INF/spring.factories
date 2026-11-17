@@ -1,0 +1,2 @@
+# Red de seguridad contra el literal "${VAR}" (ver SecretosSinResolverListener)
+org.springframework.context.ApplicationListener=com.springboot.cloud.cagr.xrello.cuentas.security.SecretosSinResolverListener

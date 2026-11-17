@@ -1,0 +1,54 @@
+services:
+  ms-xrello-cuentas:
+    build:
+      context: ..
+      dockerfile: ms-xrello-cuentas/Dockerfile
+    image: ms-xrello-cuentas:latest
+    container_name: ms-xrello-cuentas
+    restart: unless-stopped
+    ports:
+      # SOLO loopback (127.0.0.1): nunca en todas las interfaces. El puerto se publica al host, pero
+      # no a la red — ver XRELLO_CONTRATO.md, "Puertos publicados". Desde el propio host (navegador,
+      # curl, IDE) sigue accesible por localhost; los demas contenedores se alcanzan por la red
+      # cagr-net y su nombre, que NO depende de estos puertos publicados.
+      - "127.0.0.1:8007:8007"
+      # Puerto de depuracion remota (JDWP) — ver .vscode/launch.json
+      # "Docker: Attach to ms-xrello-cuentas" (se conecta a localhost). suspend=n: la app arranca sin esperar a
+      # que se conecte un debugger. JDWP NO TIENE AUTENTICACION: quien alcance este puerto ejecuta
+      # codigo dentro del proceso, y ningun filtro de aplicacion lo impide. Por eso SIEMPRE 127.0.0.1.
+      # (address=* en JAVA_TOOL_OPTIONS es correcto: es DENTRO del contenedor, para que el publicado
+      # llegue; lo que restringe el acceso es el 127.0.0.1 de aqui.)
+      - "127.0.0.1:5010:5010"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      # Trazas distribuidas (infra-tracing): usuario/clave de RabbitMQ, SIN default (van en .env; ver .env.example).
+      # Mismos valores que RABBIT_USERNAME / RABBIT_PASSWORD de infra-tracing/.env. El servicio no arranca sin ellos.
+      ZIPKIN_RABBIT_USERNAME: "${ZIPKIN_RABBIT_USERNAME:?Falta ZIPKIN_RABBIT_USERNAME: copia .env.example a .env (mismo valor que RABBIT_USERNAME de infra-tracing/.env)}"
+      ZIPKIN_RABBIT_PASSWORD: "${ZIPKIN_RABBIT_PASSWORD:?Falta ZIPKIN_RABBIT_PASSWORD: copia .env.example a .env (mismo valor que RABBIT_PASSWORD de infra-tracing/.env)}"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_USERNAME: xrello
+      DB_PASSWORD: "${DB_PASSWORD:?Falta DB_PASSWORD: copia .env.example a .env (mismo valor que DB_PASS_XRELLO de infra-db/.env)}"
+      # SIN default a proposito: quien conozca este valor firma un token del emisor local con el
+      # correo de cualquier usuario. Va en .env (ignorado por git; plantilla en .env.example). DEBE ser
+      # el MISMO valor en ms-xrello-cuentas y ms-xrello-tableros. Minimo 32 bytes.
+      XRELLO_JWT_SECRET: "${XRELLO_JWT_SECRET:?Falta XRELLO_JWT_SECRET: copia .env.example a .env y define un valor propio (>= 32 caracteres, igual en cuentas y tableros)}"
+      # Secreto compartido con ms-usuario (D28/Tesela, ver security.identidad.UsuarioDirectorioClient).
+      # SIN default: el login y el alta ya no son locales, dependen de este endpoint interno. MISMO
+      # valor que app.internal.token de ms-usuario (y que ms3-oauth/app_admin_web).
+      USUARIO_INTERNAL_TOKEN: "${USUARIO_INTERNAL_TOKEN:?Falta USUARIO_INTERNAL_TOKEN: copia .env.example a .env (mismo valor que app.internal.token de ms-usuario)}"
+      # API key del cliente "Proyectos" en ms-mensajeria (secreto, sin default; ver .env.example)
+      MENSAJERIA_API_KEY: "${MENSAJERIA_API_KEY:?Falta MENSAJERIA_API_KEY: copia .env.example a .env (API key del cliente Proyectos, que entrega ms-mensajeria UNA sola vez al dar de alta al cliente)}"
+      JAVA_TOOL_OPTIONS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5010"
+    extra_hosts:
+      # host.docker.internal ya lo resuelve Docker Desktop (Windows/Mac) por
+      # defecto; esta entrada lo hace funcionar tambien en Docker Engine
+      # sobre Linux (soportado desde Docker 20.10 via el target especial
+      # "host-gateway").
+      - "host.docker.internal:host-gateway"
+    networks:
+      - cagr-net
+
+networks:
+  cagr-net:
+    external: true

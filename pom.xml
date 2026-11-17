@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>3.5.14</version>
+		<relativePath /> <!-- lookup parent from repository -->
+	</parent>
+	<groupId>com.springboot.cloud.cagr</groupId>
+	<artifactId>ms-xrello-cuentas</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>ms-xrello-cuentas</name>
+	<description>Xrello — microservicio de cuentas, usuarios y membresías.</description>
+	<url />
+	<licenses>
+		<license />
+	</licenses>
+	<developers>
+		<developer />
+	</developers>
+	<scm>
+		<connection />
+		<developerConnection />
+		<tag />
+		<url />
+	</scm>
+	<properties>
+		<java.version>17</java.version>
+		<spring-cloud.version>2025.0.2</spring-cloud.version>
+	</properties>
+	<dependencies>
+
+		<!-- Librería de clases comunes del ecosistema de microservicios -->
+		<dependency>
+			<groupId>com.springboot.cloud.cagr</groupId>
+			<artifactId>ms-commons</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+
+		<!-- OBLIGATORIO con ms-commons + JPA: CustomAuditDataAutoConfiguration (ms-commons) tiene
+			 metodos @Bean que referencian RabbitTemplate. Sin esta dependencia en el classpath, la
+			 introspeccion de Spring sobre esa clase de configuracion lanza NoClassDefFoundError al
+			 arrancar el contexto (verificado: rompia AuthFlowTest), sin importar que
+			 app.audit.rabbit.enabled este en false. No hace falta activar la auditoria por RabbitMQ
+			 aqui, basta con que la clase exista. -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-amqp</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-validation</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+
+		<!--
+			Spring Security como resource server JWT (HS256). oauth2-resource-server trae
+			spring-security-oauth2-jose (NimbusJwtEncoder/NimbusJwtDecoder) — se usa para EMITIR
+			(login/refresh) y VALIDAR (filtro de requests) tokens propios, sin agregar una
+			libreria JWT de terceros (io.jsonwebtoken, etc.).
+		-->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-loadbalancer</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+		</dependency>
+
+		<!-- Circuit breaker para la llamada interna a ms-usuario (ver UsuarioDirectorioClient,
+			 mismo patron que ms3-oauth/UsuarioRemotoClient). -->
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-circuitbreaker-resilience4j</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>com.mysql</groupId>
+			<artifactId>mysql-connector-j</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+
+		<!--
+			Flyway — migraciones versionadas contra db_xrello (ver
+			XRELLO_CONTRATO.md §7). flyway-mysql es obligatorio desde
+			Flyway 10: el soporte de MySQL se movio a un modulo aparte.
+		-->
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-mysql</artifactId>
+		</dependency>
+
+		<!--
+			SpringDoc OpenAPI UI — Swagger UI en /swagger-ui.html, JSON/YAML
+			en /api-docs. Version fija, no gestionada por ningun BOM.
+		-->
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>2.8.8</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-configuration-processor</artifactId>
+			<optional>true</optional>
+		</dependency>
+
+		<!--
+			Lombok: <optional>true</optional> + annotationProcessorPaths explicito en
+			maven-compiler-plugin (ver XRELLO_CONTRATO.md §9 y §13 — NUNCA
+			<scope>annotationProcessor</scope>, no es un scope valido de Maven).
+		-->
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<optional>true</optional>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-devtools</artifactId>
+			<scope>runtime</scope>
+			<optional>true</optional>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<!--
+			Testcontainers MySQL — para cualquier test que necesite persistencia
+			real contra MySQL (ver XRELLO_CONTRATO.md §11). Version gestionada
+			por spring-boot-starter-parent via testcontainers-bom.
+		-->
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>junit-jupiter</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>mysql</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<!--
+			ArchUnit — verifica en tests que ningun controller (paquete web/web.admin) acceda a
+			`repository` directamente (ver XRELLO_CONTRATO.md §18, ArquitecturaTest).
+		-->
+		<dependency>
+			<groupId>com.tngtech.archunit</groupId>
+			<artifactId>archunit-junit5</artifactId>
+			<version>1.3.0</version>
+			<scope>test</scope>
+		</dependency>
+
+
+		<!--
+			Trazas distribuidas: Micrometer Tracing (fachada) + Brave (motor) -> RabbitMQ -> Zipkin
+			(ver infra-tracing/). El exportador solo se enciende con app.tracing.rabbit.enabled=true.
+			Versiones gestionadas por el BOM de Spring Boot.
+		-->
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-tracing-bridge-brave</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.zipkin.reporter2</groupId>
+			<artifactId>zipkin-reporter-brave</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.zipkin.reporter2</groupId>
+			<artifactId>zipkin-sender-amqp-client</artifactId>
+		</dependency>
+	</dependencies>
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.springframework.cloud</groupId>
+				<artifactId>spring-cloud-dependencies</artifactId>
+				<version>${spring-cloud.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<executions>
+					<!--
+						Genera META-INF/build-info.properties (nombre, version, grupo, artifact,
+						timestamp de build) — Spring Boot lo expone automaticamente en
+						/actuator/info via ProjectInfoAutoConfiguration, sin codigo propio.
+					-->
+					<execution>
+						<goals>
+							<goal>build-info</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<annotationProcessorPaths>
+						<path>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+						</path>
+						<path>
+							<groupId>org.springframework.boot</groupId>
+							<artifactId>spring-boot-configuration-processor</artifactId>
+						</path>
+					</annotationProcessorPaths>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>

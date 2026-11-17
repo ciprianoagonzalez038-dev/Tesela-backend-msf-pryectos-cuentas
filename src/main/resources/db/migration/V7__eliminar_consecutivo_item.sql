@@ -1,0 +1,29 @@
+-- ============================================================================
+-- Microservicio: ms-xrello-cuentas
+-- Version:       V7 — elimina cta_proyecto.consecutivo_item (dead code).
+--
+-- ============================================================================
+-- POR QUÉ SE ELIMINA (no se deja como "legado documentado"): este mecanismo
+-- (columna consecutivo_item + ProyectoRepository#incrementarConsecutivo +
+-- #leerPrefijoYConsecutivo + ProyectoService#siguienteConsecutivo) nunca llegó
+-- a usarse en producción. ms-xrello-tableros, que es quien realmente numera
+-- los items (campo `clave`, ej. "XRL-1"), decidió DESDE EL PRINCIPIO generar
+-- su propio consecutivo LOCAL (tabla tab_consecutivo_proyecto, ver
+-- ms-xrello-tableros/domain/ConsecutivoProyecto.java) en vez de llamar a este
+-- servicio por HTTP en su camino de escritura más caliente — decisión ya
+-- documentada ahí mismo antes de esta migración.
+--
+-- Verificado antes de eliminar (ver auditoría de
+-- XRELLO_ESTADO_BACKEND.md / sesión que creó esta migración):
+--   - `siguienteConsecutivo` solo lo invocaba su propio test de concurrencia
+--     (ProyectoServiceTest), nunca un controller ni ningún otro servicio.
+--   - Ningún DTO de respuesta expone `consecutivoItem`.
+--   - La vista pública vw_xrello_membresia (V6) NO selecciona esta columna
+--     (selecciona columnas explícitas, no `SELECT *`), así que eliminarla no
+--     le afecta ni requiere coordinación con ms-xrello-tableros.
+--
+-- El código Java (entidad, repositorio, servicio, test) se eliminó en el
+-- mismo cambio que esta migración — no queda ninguna referencia en memoria a
+-- una columna que ya no existe.
+-- ============================================================================
+ALTER TABLE cta_proyecto DROP COLUMN consecutivo_item;

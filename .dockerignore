@@ -1,0 +1,11 @@
+target/
+.git/
+.vscode/
+.idea/
+*.iml
+.mvn/wrapper/maven-wrapper.jar
+
+# Secretos locales (ver .env.example)
+.env
+.env.*
+!.env.example
